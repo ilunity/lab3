@@ -3,14 +3,11 @@
  */
 
 #include "SHA256.h"
-#include <stdio.h>
 #include <string>
 #include <string.h>
 #include <iostream>
 #include <iomanip>
-#include <cstdint>
 #include <sstream>
-#include <cstdint>
 
 typedef uint32_t uint32;
 

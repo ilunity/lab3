@@ -6,7 +6,7 @@
 #define H_SHA256
 
 #include <string>
-#include <cstdint>
+#include <stdint.h>
 
 class SHA256{
 private:
