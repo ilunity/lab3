@@ -1,4 +1,4 @@
-#include <string.h>
+#include <sstream>
 #include <mpi.h>
 #include <iostream>
 #include <cmath>
@@ -6,7 +6,7 @@
 
 using namespace std;
 
-int DEFAULT_DIFFICULTY = 7;
+int DEFAULT_DIFFICULTY = 5;
 
 
 bool isValid(string hash) {
@@ -17,10 +17,18 @@ bool isValid(string hash) {
     return true;
 }
 
+string my_to_string(unsigned int v) {
+    stringstream ss;
+    ss << v;
+    string r;
+    ss >> r;
+    return r;
+}
+
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
 
-    int size, rank;
+    int size, rank, root = 0, tag =8;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -32,36 +40,37 @@ int main(int argc, char **argv) {
     counter *= rank;
 
 
-    bool status = false;
-    bool need_rest = false;
-    int result_count;
+    bool status;
+    int result_count, result_rank = size;
 
-    while (!need_rest) {
-        result_string = input_string + to_string(counter);
+    while (result_rank == size) {
+        result_string = input_string + my_to_string(++counter);
         hash = sha256.hash(result_string);
 
-        counter++;
         status = isValid(hash);
 
         if (counter % 1000000 == 0 || status) {
-            MPI_Allreduce(&status, &need_rest, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
-
-            if (rank == 0) {
-                cout << counter << endl;
-            }
+            int send_rank = status ? rank : size;
+            MPI_Allreduce(&send_rank, &result_rank, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
         }
     }
 
-    if (status) {
-        counter--;
-        MPI_Send(&counter, 1, MPI_INT, 0, 8, MPI_COMM_WORLD);
+    if (rank == result_rank) {
+        if (rank != root) {
+            MPI_Send(&counter, 1, MPI_INT, root, tag, MPI_COMM_WORLD);
+        } else {
+            result_count = counter;
+        }
     }
 
-    MPI_Status mpi_status;
-    if (rank == 0) {
-        MPI_Recv(&result_count, 1, MPI_INT, MPI_ANY_SOURCE, 8, MPI_COMM_WORLD, &mpi_status);
+    if (rank == root) {
+        if (rank != result_rank) {
+            MPI_Recv(&result_count, 1, MPI_INT, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+
         cout << "Counter:" << result_count << endl;
-        cout << sha256.hash(input_string + to_string(result_count)) << endl;
+        cout << "Hash: " << sha256.hash(input_string + my_to_string(result_count)) << endl;
+        cout << "Rank: " << result_rank << endl;
     }
 
 
