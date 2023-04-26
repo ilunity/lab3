@@ -1,13 +1,11 @@
 #include <sstream>
 #include <mpi.h>
 #include <iostream>
-#include <cmath>
 #include "sha256.h"
 
 using namespace std;
 
 int DEFAULT_DIFFICULTY = 5;
-
 
 bool isValid(string hash) {
     for (int i = 0; i < DEFAULT_DIFFICULTY; i++) {
@@ -36,7 +34,7 @@ int main(int argc, char **argv) {
 
     string result_string, hash, input_string = "heyhfd";
 
-    unsigned int counter = pow(10, 16) / size;
+    int counter = 1E-15 / size;
     counter *= rank;
 
 
